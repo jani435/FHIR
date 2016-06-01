@@ -4,8 +4,9 @@ from openerp import models, fields, api
 
 class HcExtension(models.Model):
 	_inherit = 'hc.address'
-
-	postal_code_id = fields.Many2one(comodel_name="hc.vs.country.postal.code", string="Postal Code", help="Postal code for area.")
+	#This model will extends hc.address and override fields defined below. 
+	#I am redefining below fields in this new models so it will override fields definition in the parent model
+	#Made all the fields related, related fields are kind of computed fileds so they have the value of the subfield that we have defined as related.
 	district_id = fields.Many2one(related='postal_code_id.district_id', string="District/County", help="The name of the administrative area (e.g., county).")
 	state_id = fields.Many2one(related='postal_code_id.state_id', string="State", help="Sub-unit of country (abreviations ok).")
 	
@@ -13,24 +14,35 @@ class HcExtension(models.Model):
 	region_id = fields.Many2one(related='postal_code_id.region_id', string="Region", help="First level subdivision of a country (e.g. West, Midwest).")
 	country_id = fields.Many2one(related='postal_code_id.country_id', string="Country", help="Country (can be ISO 3166 3 letter code).")
 
+	#Overriding create method, this method get called by framework everytime when record gets created.
 	@api.model
 	def create(self, vals):
+		#@param: vals - contains value of all the fields.
+		#Concating fields line1, line2 and line3 in new variable lines.
 		lines = vals['line1']+', '+vals['line2']+', '+vals['line3']+', '
+		#All other fields are not simple character fields but many2one fields, so we need to fetch it's name from the datbase.
+		#Therefore used browse method, browse method used to get recordset from database for given id of record.
 		city = self.env['hc.vs.country.city'].browse(vals['city_id']).name
-		state = self.env['res.country.state'].browse(vals['state_id']).name
+		state = self.env['res.country.state'].browse(vals['state_id']).code
 		pin = self.env['hc.vs.country.postal.code'].browse(vals['postal_code_id']).name
 		district = self.env['hc.vs.country.district'].browse(vals['district_id']).name
 		division = self.env['hc.vs.country.division'].browse(vals['division_id']).name
 		region = self.env['hc.vs.country.region'].browse(vals['region_id']).name
 		country = self.env['res.country'].browse(vals['country_id']).name
+		#Concating all the value in single in variable address.
 		address = lines+city+', '+pin+', '+district+', '+division+', '+region+', '+country
+		#Assigning value of address to field name of the record.
 		vals['name'] = address
+		#Calling super method and returning the newly updated values.
 		return super(HcExtension, self).create(vals)
 
 
 	@api.multi
 	def write(self, vals):
-		#I think this code can be improved but time is constraint so...
+		#This method gets called when updating the record.
+		#@param: vals - vals contains only fields which are updated.
+		#Here we are updating the value of name field of the record but vals paramaeter of write method only contains the field which has updated
+		#we need to check every field 
 		if 'line1' in vals:
 			line1 = vals['line1']
 		else:
@@ -80,7 +92,7 @@ class HcExtension(models.Model):
 			country = self.env['res.country'].browse(vals['country_id']).name
 		else:
 			country = self.country_id.name
-
+		#Concating and same procedure as create method.
 		address = line1+', '+line2+', '+line3+', '+city+', '+pin+', '+district+', '+division+', '+region+', '+country
 		vals['name'] = address
 		return super(HcExtension, self).write(vals)
