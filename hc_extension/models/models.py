@@ -152,3 +152,12 @@ class HcExtensionHumanName(models.Model):
         vals['name'] = full
 
         return super(HcExtensionHumanName, self).create(vals)
+
+class hc_person(model.Model):
+	_inherit = 'hc.res.person'
+
+	@api.model
+	def create(self, vals):
+		name = self.env['hc.human.name'].browse(vals['name_id'])
+		vals['name'] = name.first_id.name+' '+name.surname_id.name
+		return super(Person, self).create(vals)
