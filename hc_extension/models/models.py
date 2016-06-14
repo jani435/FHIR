@@ -161,3 +161,10 @@ class hc_person(model.Model):
 		name = self.env['hc.human.name'].browse(vals['name_id'])
 		vals['name'] = name.first_id.name+' '+name.surname_id.name
 		return super(Person, self).create(vals)
+
+class HumanName(models.Model):
+	_inherit = 'hc.human.name'
+
+	middle_ids = fields.Many2many("hc.human.name.term", "middle_name_human_term_rel", string="Middle Names", help="Part of given name.")
+	initial_ids = fields.Many2many("hc.human.name.term", "initial_name_human_term_rel", string="Initial Names", help="Part of given name.")
+	nickname_ids = fields.Many2many("hc.human.name.term", "nick_name_human_term_rel", string="Nickname", help="Part of given name.")
