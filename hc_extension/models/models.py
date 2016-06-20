@@ -165,6 +165,42 @@ class hc_person(model.Model):
 class HumanName(models.Model):
 	_inherit = 'hc.human.name'
 
+	@api.depends('display_order', 'prefix_ids', 'first_id', 'middle_ids', 'initial_ids', 'nickname_ids', 'mother_maiden_name_id', 'surname_id', 'suffix_ids', 'previous_last_id', 'birth_last_name_id')
+	def _compute_full_name(self):
+		first_name = self.first_id.name if self.first_id else ''
+		middle_name = " ".join([middle.name for middle in self.middle_ids]) if self.middle_ids else ''
+		initials = " ".join([initial.name for initial in self.initial_ids]) if self.initial_ids else ''
+		nick_name = " ".join(nickname.name for nickname in self.nickname_ids) if self.nickname_ids else ''
+		given = first_name+' '+middle_name+' '+initials+' '+nick_name
+		
+		maiden_name = self.mother_maiden_name_id.name if self.mother_maiden_name_id else ''
+		birth_last = self.birth_last_name_id.name if self.birth_last_name_id else ''
+		previous_last = self.previous_last_id.name if self.previous_last_id else ''
+		surname = self.surname_id.name if self.surname_id else ''
+		family = maiden_name +' '+ birth_last +' '+ previous_last +' '+ surname
+
+		family_reserve = birth_last +' '+ surname +' '+ maiden_name
+		
+		prefix = " ".join([prefix.name for prefix in self.prefix_ids]) if self.prefix_ids else ''
+		suffix = " ".join([suffix.name for suffix in self.suffix_ids]) if self.suffix_ids else ''
+
+		if self.display_order == 'given maiden last':
+			full = prefix +' '+ given +' '+ family +' '+ suffix
+			self.name = full
+
+		if self.display_order == 'maiden last first':
+			full_reserve = prefix +' '+ family +' '+ given +' '+ suffix
+			self.name = full_reserve
+
+		if self.display_order == 'first last maiden':
+			full_family_reserve = prefix +' '+ given +' '+ family_reserve +' '+ suffix
+			self.name = full_family_reserve
+
+	name = fields.Char(compute='_compute_full_name',
+		store=True,
+		string="Full Name",
+		help="A full text representation of the human name.")
+
 	middle_ids = fields.Many2many("hc.human.name.term", "middle_name_human_term_rel", string="Middle Names", help="Part of given name.")
 	initial_ids = fields.Many2many("hc.human.name.term", "initial_name_human_term_rel", string="Initial Names", help="Part of given name.")
 	nickname_ids = fields.Many2many("hc.human.name.term", "nick_name_human_term_rel", string="Nickname", help="Part of given name.")
